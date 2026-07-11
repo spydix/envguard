@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-09-12
+
+### Added
+- `--fix` flag: automatically fixes common issues in .env files.
+  Sorts keys alphabetically, removes duplicate keys (keeps last value),
+  and creates a backup of the original file before writing changes.
+- `--no-backup` flag: skips backup creation when using `--fix`.
+- New `fixer` module with `fix_env_file()` function.
+- Tests for the fixer module covering sorting, deduplication, backup
+  creation, backup skip, and preserving last values.
+
 ## [1.1.0] - 2025-08-05
 
 ### Added

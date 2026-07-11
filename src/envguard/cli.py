@@ -57,6 +57,16 @@ def main(argv: list[str] | None = None) -> int:
         metavar="PATH",
         help="Path to .envignore file. Keys listed there are skipped.",
     )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Fix the file: sort keys, remove duplicates. Creates a .bak backup.",
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Skip creating a .bak backup when using --fix.",
+    )
     args = parser.parse_args(argv)
 
     if not args.files:
@@ -79,6 +89,21 @@ def main(argv: list[str] | None = None) -> int:
     ignored_keys: set[str] = set()
     if args.envignore:
         ignored_keys = load_envignore(args.envignore)
+
+    if args.fix:
+        from envguard.fixer import fix_env_file
+        for f in args.files:
+            backup = fix_env_file(
+                f,
+                sort_keys=True,
+                deduplicate=True,
+                backup=not args.no_backup,
+            )
+            if backup:
+                print(f"Fixed {f}. Backup saved to {backup}")
+            else:
+                print(f"Fixed {f}.")
+        return 0
 
     reports = lint_files(args.files)
 
