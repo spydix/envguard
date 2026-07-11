@@ -6,7 +6,9 @@ from pathlib import Path
 
 from envguard.linter import compare_env_files
 from envguard.linter import lint_files
-from envguard.secrets import scan_for_secrets
+from envguard.reporter import build_issues
+from envguard.reporter import print_report
+from envguard.reporter import Severity
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,6 +31,22 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Scan for secrets like API keys, tokens, and passwords.",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat warnings as errors (exit 1 on any issue).",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["text", "json", "silent"],
+        default="text",
+        help="Output format (default: text).",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress output. Only return exit code.",
+    )
     args = parser.parse_args(argv)
 
     if not args.files:
@@ -44,51 +62,60 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: example file not found: {args.example}", file=sys.stderr)
         return 2
 
-    found_issues = False
+    from envguard.reporter import Issue
 
     reports = lint_files(args.files)
+    all_issues: list[Issue] = []
 
-    for report in reports:
-        for first, dup in report.duplicates:
-            found_issues = True
-            print(
-                f"{report.file}:{dup.line}  DUPLICATE_KEY  "
-                f"'{dup.key}' already defined on line {first.line}"
-            )
-        for entry in report.empties:
-            found_issues = True
-            print(
-                f"{report.file}:{entry.line}  EMPTY_VALUE  "
-                f"'{entry.key}' has an empty value"
-            )
+    secrets_list = None
+    if args.check_secrets:
+        from envguard.secrets import scan_for_secrets
+        all_entries = []
+        for r in reports:
+            all_entries.extend(r.entries)
+        secrets_list = scan_for_secrets(all_entries)
 
-        if args.check_secrets:
-            secrets = scan_for_secrets(report.entries)
-            for s in secrets:
-                found_issues = True
-                print(
-                    f"{report.file}:{s.line}  SECRET  "
-                    f"'{s.key}' looks like a {s.pattern_name} (severity: {s.severity})"
-                )
+    all_issues = build_issues(reports, secrets_list, strict=args.strict)
 
     if args.example:
+        from envguard.reporter import Severity as Sev
         for env_file in args.files:
             result = compare_env_files(env_file, args.example)
             for key in result.missing_in_env:
-                found_issues = True
-                print(
-                    f"{result.example_file}  MISSING_IN_ENV  "
-                    f"'{key}' is in .env.example but not in {result.env_file}"
-                )
+                all_issues.append(Issue(
+                    file=result.example_file,
+                    line=0,
+                    issue_type="MISSING_IN_ENV",
+                    message=f"'{key}' is in .env.example but not in {result.env_file}",
+                    key=key,
+                    severity=Sev.ERROR,
+                ))
             for key in result.missing_in_example:
-                found_issues = True
-                print(
-                    f"{result.env_file}  MISSING_IN_EXAMPLE  "
-                    f"'{key}' is in {result.env_file} but not in {result.example_file}"
-                )
+                all_issues.append(Issue(
+                    file=result.env_file,
+                    line=0,
+                    issue_type="MISSING_IN_EXAMPLE",
+                    message=f"'{key}' is in {result.env_file} but not in {result.example_file}",
+                    key=key,
+                    severity=Sev.WARNING,
+                ))
 
-    if found_issues:
+    fmt = "silent" if args.quiet else args.format
+    print_report(all_issues, fmt=fmt)
+
+    if not all_issues:
+        return 0
+
+    has_errors = any(i.severity == Severity.ERROR for i in all_issues)
+    has_warnings = any(i.severity == Severity.WARNING for i in all_issues)
+
+    if args.strict:
         return 1
+    if has_errors:
+        return 1
+    if has_warnings:
+        return 0
+
     return 0
 
 

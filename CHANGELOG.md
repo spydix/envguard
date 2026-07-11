@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-07-10
+
+### Added
+- Stable public API. The `envguard` CLI and the `envguard.linter`,
+  `envguard.secrets`, and `envguard.reporter` modules are now considered
+  stable and will not have breaking changes within the 1.x series.
+- Color output for text format: errors in red, warnings in yellow.
+- `--strict` flag: treats warnings as errors (exit 1 on any issue).
+- `--format` flag with choices: `text` (default), `json`, `silent`.
+- `--quiet` flag: suppresses all output, only returns exit code.
+- New `reporter` module with structured issue reporting:
+  - `Issue` dataclass with file, line, type, message, key, severity.
+  - `Severity` enum: ERROR and WARNING.
+  - `build_issues()` to construct issues from lint reports and secrets.
+  - `format_text()`, `format_json()`, `print_report()` for output.
+- Empty values are now warnings by default, errors in strict mode.
+- Duplicate keys are always errors.
+- Secret findings with high severity are errors, medium are warnings.
+
+### Changed
+- CLI refactored to use the new reporter module.
+- Exit code logic is now: 0 (no issues), 1 (any error, or any issue in
+  strict mode), 2 (file not found).
+- JSON output uses proper structured format with severity levels.
+
 ## [0.3.2] - 2025-06-15
 
 ### Fixed

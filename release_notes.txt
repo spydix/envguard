@@ -1,10 +1,19 @@
-Bugfix release.
-
-Fixed:
-- Inline comments in unquoted values are now properly stripped. Previously a # anywhere in the value would truncate it, even mid-word. Now only a # preceded by whitespace is treated as a comment marker for unquoted values. Quoted values preserve # as part of the value.
-- URLs with hash fragments (http://example.com/page#section) are no longer truncated.
+Major release - first stable version.
 
 Added:
-- Tests for inline comment stripping (unquoted, quoted, URLs, hash-without-space).
+- Stable public API. The envguard CLI and envguard.linter, envguard.secrets, and envguard.reporter modules are now considered stable and will not have breaking changes within the 1.x series.
+- Color output for text format: errors in red, warnings in yellow.
+- --strict flag: treats warnings as errors (exit 1 on any issue).
+- --format flag with choices: text (default), json, silent.
+- --quiet flag: suppresses all output, only returns exit code.
+- New reporter module with structured issue reporting.
+- Empty values are now warnings by default, errors in strict mode.
+- Duplicate keys are always errors.
+- Secret findings with high severity are errors, medium are warnings.
 
-Tests: 39 passing.
+Changed:
+- CLI refactored to use the new reporter module.
+- Exit code logic: 0 (no issues), 1 (any error, or strict mode), 2 (file not found).
+- JSON output uses proper structured format with severity levels.
+
+Tests: 49 passing.
