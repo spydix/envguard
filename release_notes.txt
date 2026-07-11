@@ -1,12 +1,9 @@
-Feature release.
+Bugfix release.
+
+Fixed:
+- Key ordering in comparison output is now deterministic. Keys are returned in the order they appear in the file, not in random set order. Comparison results no longer jump around between runs.
 
 Added:
-- Compare .env with .env.example using --example flag
-- Reports MISSING_IN_ENV: keys present in .env.example but missing in .env
-- Reports MISSING_IN_EXAMPLE: keys present in .env but missing in .env.example
-- Useful for catching drift between what your app expects and what is configured
+- Test for deterministic key ordering in comparison output.
 
-Known issues:
-- Key ordering in comparison output is non-deterministic because keys are stored in a set internally. The output order may change between runs. Fix coming in 0.2.1.
-
-Tests: 20 passing.
+Tests: 21 passing.

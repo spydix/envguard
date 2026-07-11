@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-05-18
+
+### Added
+- Secret detection module with patterns for AWS keys, GitHub tokens,
+  GitLab tokens, Slack tokens, JWT tokens, private key blocks, and generic
+  API keys / passwords / secrets / tokens.
+- `--check-secrets` CLI flag to enable secret scanning.
+- Severity levels: high and medium.
+- Tests for secret detection patterns.
+
+### Known issues
+- Secret detection runs on values but the password pattern uses
+  case-insensitive regex which matches the word "password" even in
+  comments that happen to be on the same line as a key=value pair.
+  This causes false positives. Will be fixed in 0.3.1.
+- Values containing `#` (inline comments) are truncated at the `#`
+  symbol, losing part of the value. Will be fixed in 0.3.2.
+
 ## [0.2.1] - 2025-05-01
 
 ### Fixed

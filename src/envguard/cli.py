@@ -6,6 +6,7 @@ from pathlib import Path
 
 from envguard.linter import compare_env_files
 from envguard.linter import lint_files
+from envguard.secrets import scan_for_secrets
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -22,6 +23,11 @@ def main(argv: list[str] | None = None) -> int:
         "--example",
         metavar="PATH",
         help="Compare .env with a .env.example file.",
+    )
+    parser.add_argument(
+        "--check-secrets",
+        action="store_true",
+        help="Scan for secrets like API keys, tokens, and passwords.",
     )
     args = parser.parse_args(argv)
 
@@ -55,6 +61,15 @@ def main(argv: list[str] | None = None) -> int:
                 f"{report.file}:{entry.line}  EMPTY_VALUE  "
                 f"'{entry.key}' has an empty value"
             )
+
+        if args.check_secrets:
+            secrets = scan_for_secrets(report.entries)
+            for s in secrets:
+                found_issues = True
+                print(
+                    f"{report.file}:{s.line}  SECRET  "
+                    f"'{s.key}' looks like a {s.pattern_name} (severity: {s.severity})"
+                )
 
     if args.example:
         for env_file in args.files:
