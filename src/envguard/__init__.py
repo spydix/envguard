@@ -3,4 +3,4 @@ from __future__ import annotations
 from envguard.cli import main
 
 __all__ = ["main"]
-__version__ = "0.1.2"
+__version__ = "0.2.0"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from envguard.linter import EnvEntry
+from envguard.linter import compare_env_files
 from envguard.linter import find_duplicates
 from envguard.linter import find_empties
 from envguard.linter import lint_file
@@ -10,8 +11,8 @@ import tempfile
 from pathlib import Path
 
 
-def _write(tmp: Path, content: str) -> Path:
-    f = tmp / ".env"
+def _write(tmp: Path, content: str, name: str = ".env") -> Path:
+    f = tmp / name
     f.write_text(content)
     return f
 
@@ -115,3 +116,30 @@ def test_lint_file_with_issues():
         report = lint_file(f)
         assert len(report.duplicates) == 1
         assert len(report.empties) == 1
+
+
+def test_compare_no_diff():
+    with tempfile.TemporaryDirectory() as d:
+        env = _write(Path(d), "KEY=val\nOTHER=hello\n", ".env")
+        example = _write(Path(d), "KEY=val\nOTHER=hello\n", ".env.example")
+        result = compare_env_files(env, example)
+        assert result.missing_in_env == []
+        assert result.missing_in_example == []
+
+
+def test_compare_missing_in_env():
+    with tempfile.TemporaryDirectory() as d:
+        env = _write(Path(d), "KEY=val\n", ".env")
+        example = _write(Path(d), "KEY=val\nREDIS_URL=redis://\n", ".env.example")
+        result = compare_env_files(env, example)
+        assert "REDIS_URL" in result.missing_in_env
+        assert result.missing_in_example == []
+
+
+def test_compare_missing_in_example():
+    with tempfile.TemporaryDirectory() as d:
+        env = _write(Path(d), "KEY=val\nSECRET=xyz\n", ".env")
+        example = _write(Path(d), "KEY=val\n", ".env.example")
+        result = compare_env_files(env, example)
+        assert result.missing_in_env == []
+        assert "SECRET" in result.missing_in_example

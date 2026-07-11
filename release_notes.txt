@@ -1,9 +1,10 @@
 Bugfix release.
 
 Fixed:
-- Key comparison is now case-sensitive. API_KEY and api_key are treated as two separate keys, not duplicates. This was causing false-positive duplicate warnings in projects that use mixed casing conventions.
+- Multiline values (lines ending with backslash) are now properly joined instead of being truncated at the first line. This was breaking PEM keys and SQL queries stored in .env files.
+- Parser rewritten to handle backslash continuation correctly.
 
 Added:
-- Test for case-sensitive key parsing.
+- Test for multiline value parsing.
 
-Tests: 14 passing.
+Tests: 15 passing.

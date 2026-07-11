@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from envguard.linter import compare_env_files
 from envguard.linter import lint_files
 
 
@@ -17,6 +18,11 @@ def main(argv: list[str] | None = None) -> int:
         nargs="+",
         help="Path(s) to .env file(s) to check.",
     )
+    parser.add_argument(
+        "--example",
+        metavar="PATH",
+        help="Compare .env with a .env.example file.",
+    )
     args = parser.parse_args(argv)
 
     if not args.files:
@@ -28,8 +34,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Error: file not found: {f}", file=sys.stderr)
             return 2
 
-    reports = lint_files(args.files)
+    if args.example and not Path(args.example).exists():
+        print(f"Error: example file not found: {args.example}", file=sys.stderr)
+        return 2
+
     found_issues = False
+
+    reports = lint_files(args.files)
 
     for report in reports:
         for first, dup in report.duplicates:
@@ -44,6 +55,22 @@ def main(argv: list[str] | None = None) -> int:
                 f"{report.file}:{entry.line}  EMPTY_VALUE  "
                 f"'{entry.key}' has an empty value"
             )
+
+    if args.example:
+        for env_file in args.files:
+            result = compare_env_files(env_file, args.example)
+            for key in result.missing_in_env:
+                found_issues = True
+                print(
+                    f"{result.example_file}  MISSING_IN_ENV  "
+                    f"'{key}' is in .env.example but not in {result.env_file}"
+                )
+            for key in result.missing_in_example:
+                found_issues = True
+                print(
+                    f"{result.env_file}  MISSING_IN_EXAMPLE  "
+                    f"'{key}' is in {result.env_file} but not in {result.example_file}"
+                )
 
     if found_issues:
         return 1

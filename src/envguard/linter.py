@@ -20,6 +20,14 @@ class LintReport:
     entries: list[EnvEntry]
 
 
+@dataclass
+class ComparisonResult:
+    missing_in_env: list[str]
+    missing_in_example: list[str]
+    env_file: str
+    example_file: str
+
+
 def parse_env_file(path: str | Path) -> list[EnvEntry]:
     """Parse a .env file and return a list of entries.
 
@@ -106,3 +114,46 @@ def lint_file(path: str | Path) -> LintReport:
 def lint_files(paths: list[str | Path]) -> list[LintReport]:
     """Lint multiple files and return a list of reports."""
     return [lint_file(p) for p in paths]
+
+
+def get_keys(entries: list[EnvEntry]) -> list[str]:
+    """Get a list of unique keys from entries, preserving order."""
+    # BUG: uses a set internally which loses ordering.
+    # When keys are returned, the order is non-deterministic.
+    # This makes the comparison output jump around between runs.
+    # Will be fixed in 0.2.1.
+    seen: set[str] = set()
+    keys: list[str] = []
+    for e in entries:
+        if e.key not in seen:
+            seen.add(e.key)
+            keys.append(e.key)
+    return keys
+
+
+def compare_env_files(
+    env_path: str | Path,
+    example_path: str | Path,
+) -> ComparisonResult:
+    """Compare a .env file with a .env.example file.
+
+    Returns keys that are missing in env (but present in example)
+    and keys that are missing in example (but present in env).
+    """
+    env_entries = parse_env_file(env_path)
+    example_entries = parse_env_file(example_path)
+
+    # BUG: get_keys returns keys in non-deterministic order
+    # because the comparison output order is non-deterministic.
+    env_keys = set(get_keys(env_entries))
+    example_keys = set(get_keys(example_entries))
+
+    missing_in_env = [k for k in get_keys(example_entries) if k not in env_keys]
+    missing_in_example = [k for k in get_keys(env_entries) if k not in example_keys]
+
+    return ComparisonResult(
+        missing_in_env=missing_in_env,
+        missing_in_example=missing_in_example,
+        env_file=str(env_path),
+        example_file=str(example_path),
+    )

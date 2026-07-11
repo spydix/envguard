@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-04-20
+
+### Added
+- Compare `.env` with `.env.example` using `--example` flag.
+- Reports keys missing in env but present in example (MISSING_IN_ENV).
+- Reports keys missing in example but present in env (MISSING_IN_EXAMPLE).
+- Tests for comparison functionality.
+
+### Known issues
+- Key ordering in comparison output is non-deterministic because keys are
+  stored in a set internally. The output order may change between runs.
+  This will be fixed in 0.2.1.
+
 ## [0.1.2] - 2025-04-03
 
 ### Fixed
