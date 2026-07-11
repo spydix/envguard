@@ -117,11 +117,7 @@ def lint_files(paths: list[str | Path]) -> list[LintReport]:
 
 
 def get_keys(entries: list[EnvEntry]) -> list[str]:
-    """Get a list of unique keys from entries, preserving order."""
-    # BUG: uses a set internally which loses ordering.
-    # When keys are returned, the order is non-deterministic.
-    # This makes the comparison output jump around between runs.
-    # Will be fixed in 0.2.1.
+    """Get a list of unique keys from entries, preserving first-seen order."""
     seen: set[str] = set()
     keys: list[str] = []
     for e in entries:
@@ -139,15 +135,16 @@ def compare_env_files(
 
     Returns keys that are missing in env (but present in example)
     and keys that are missing in example (but present in env).
+
+    Keys are returned in the order they appear in the file.
     """
     env_entries = parse_env_file(env_path)
     example_entries = parse_env_file(example_path)
 
-    # BUG: get_keys returns keys in non-deterministic order
-    # because the comparison output order is non-deterministic.
-    env_keys = set(get_keys(env_entries))
-    example_keys = set(get_keys(example_entries))
+    env_keys = set(e.key for e in env_entries)
+    example_keys = set(e.key for e in example_entries)
 
+    # Preserve order: iterate in file order, filter by set membership
     missing_in_env = [k for k in get_keys(example_entries) if k not in env_keys]
     missing_in_example = [k for k in get_keys(env_entries) if k not in example_keys]
 

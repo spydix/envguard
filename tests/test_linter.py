@@ -143,3 +143,13 @@ def test_compare_missing_in_example():
         result = compare_env_files(env, example)
         assert result.missing_in_env == []
         assert "SECRET" in result.missing_in_example
+
+
+def test_compare_preserves_order():
+    """Comparison output should preserve the order keys appear in the file."""
+    with tempfile.TemporaryDirectory() as d:
+        env = _write(Path(d), "A=1\nB=2\nC=3\n", ".env")
+        example = _write(Path(d), "C=3\nD=4\n", ".env.example")
+        result = compare_env_files(env, example)
+        assert result.missing_in_env == ["D"]
+        assert result.missing_in_example == ["A", "B"]

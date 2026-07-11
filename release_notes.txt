@@ -1,10 +1,12 @@
-Bugfix release.
-
-Fixed:
-- Multiline values (lines ending with backslash) are now properly joined instead of being truncated at the first line. This was breaking PEM keys and SQL queries stored in .env files.
-- Parser rewritten to handle backslash continuation correctly.
+Feature release.
 
 Added:
-- Test for multiline value parsing.
+- Compare .env with .env.example using --example flag
+- Reports MISSING_IN_ENV: keys present in .env.example but missing in .env
+- Reports MISSING_IN_EXAMPLE: keys present in .env but missing in .env.example
+- Useful for catching drift between what your app expects and what is configured
 
-Tests: 15 passing.
+Known issues:
+- Key ordering in comparison output is non-deterministic because keys are stored in a set internally. The output order may change between runs. Fix coming in 0.2.1.
+
+Tests: 20 passing.
