@@ -70,6 +70,16 @@ def test_parse_empty_value():
         assert entries[0].is_empty is True
 
 
+def test_parse_multiline():
+    """Multiline values with backslash continuation should be joined."""
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "PRIVATE_KEY=-----BEGIN\\\nPRIVATE KEY-----\n")
+        entries = parse_env_file(f)
+        assert len(entries) == 1
+        assert "BEGIN" in entries[0].value
+        assert "PRIVATE KEY" in entries[0].value
+
+
 def test_find_duplicates():
     entries = [
         EnvEntry("key", "a", 1, False),

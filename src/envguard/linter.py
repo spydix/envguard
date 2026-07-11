@@ -28,36 +28,46 @@ def parse_env_file(path: str | Path) -> list[EnvEntry]:
     - Lines starting with export (export prefix stripped)
     - Quoted values (single and double quotes stripped)
     - Empty lines (skipped)
-
-    Note: key comparison is currently case-insensitive.
-    This is a known bug and will be fixed in 0.1.1.
+    - Multiline values (backslash continuation at end of line)
     """
     p = Path(path)
     text = p.read_text(encoding="utf-8")
     entries: list[EnvEntry] = []
 
-    for lineno, line in enumerate(text.splitlines(), start=1):
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
+            i += 1
             continue
 
         if stripped.startswith("export "):
             stripped = stripped[len("export "):].strip()
 
         if "=" not in stripped:
+            i += 1
             continue
 
         key, _, value = stripped.partition("=")
         key = key.strip()
 
         value = value.strip()
+
+        # Handle multiline values: if value ends with backslash, keep reading
+        while value.endswith("\\"):
+            value = value[:-1]
+            i += 1
+            if i < len(lines):
+                value += lines[i].strip()
+
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
             value = value[1:-1]
 
-        # BUG: multiline values (lines ending with backslash) are not handled.
-        # Only the first line is captured. Will be fixed in 0.1.2.
         is_empty = value == ""
-        entries.append(EnvEntry(key=key, value=value, line=lineno, is_empty=is_empty))
+        entries.append(EnvEntry(key=key, value=value, line=i, is_empty=is_empty))
+        i += 1
 
     return entries
 
