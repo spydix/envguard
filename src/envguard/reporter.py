@@ -83,12 +83,12 @@ def build_issues(
     return issues
 
 
-def format_text(issues: list[Issue]) -> str:
+def format_text(issues: list[Issue], no_color: bool = False) -> str:
     """Format issues as colored text output."""
-    RED = "\033[91m"
-    YELLOW = "\033[93m"
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
+    RED = "" if no_color else "\033[91m"
+    YELLOW = "" if no_color else "\033[93m"
+    RESET = "" if no_color else "\033[0m"
+    BOLD = "" if no_color else "\033[1m"
 
     lines: list[str] = []
     for issue in issues:
@@ -125,6 +125,7 @@ def print_report(
     issues: list[Issue],
     fmt: str = "text",
     stream=None,
+    no_color: bool = False,
 ) -> None:
     """Print issues in the specified format."""
     if stream is None:
@@ -140,4 +141,4 @@ def print_report(
     if fmt == "json":
         print(format_json(issues), file=stream)
     elif fmt == "text":
-        print(format_text(issues), file=stream)
+        print(format_text(issues, no_color=no_color), file=stream)

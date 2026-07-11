@@ -71,3 +71,13 @@ def test_format_text_output():
 def test_format_text_empty():
     out = format_text([])
     assert out == ""
+
+
+def test_format_text_no_color():
+    issues = [
+        Issue(file="test.env", line=3, issue_type="ERROR",
+              message="test", key="KEY", severity=Severity.ERROR),
+    ]
+    out = format_text(issues, no_color=True)
+    assert "\033" not in out
+    assert "ERROR" in out

@@ -47,6 +47,16 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Suppress output. Only return exit code.",
     )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable colored output.",
+    )
+    parser.add_argument(
+        "--envignore",
+        metavar="PATH",
+        help="Path to .envignore file. Keys listed there are skipped.",
+    )
     args = parser.parse_args(argv)
 
     if not args.files:
@@ -63,8 +73,26 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     from envguard.reporter import Issue
+    from envguard.linter import load_envignore
+    from envguard.linter import filter_entries
+
+    ignored_keys: set[str] = set()
+    if args.envignore:
+        ignored_keys = load_envignore(args.envignore)
 
     reports = lint_files(args.files)
+
+    if ignored_keys:
+        for report in reports:
+            report.entries = filter_entries(report.entries, ignored_keys)
+            report.duplicates = [
+                (f, d) for f, d in report.duplicates
+                if f.key not in ignored_keys and d.key not in ignored_keys
+            ]
+            report.empties = [
+                e for e in report.empties if e.key not in ignored_keys
+            ]
+
     all_issues: list[Issue] = []
 
     secrets_list = None
@@ -101,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
                 ))
 
     fmt = "silent" if args.quiet else args.format
-    print_report(all_issues, fmt=fmt)
+    print_report(all_issues, fmt=fmt, no_color=args.no_color)
 
     if not all_issues:
         return 0

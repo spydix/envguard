@@ -127,6 +127,33 @@ def lint_files(paths: list[str | Path]) -> list[LintReport]:
     return [lint_file(p) for p in paths]
 
 
+def load_envignore(path: str | Path) -> set[str]:
+    """Load a .envignore file and return a set of key names to skip.
+
+    Each line is a key name. Lines starting with # are comments.
+    """
+    p = Path(path)
+    if not p.exists():
+        return set()
+    keys: set[str] = set()
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        keys.add(line)
+    return keys
+
+
+def filter_entries(
+    entries: list[EnvEntry],
+    ignored_keys: set[str] | None = None,
+) -> list[EnvEntry]:
+    """Filter out entries whose keys are in the ignored set."""
+    if not ignored_keys:
+        return entries
+    return [e for e in entries if e.key not in ignored_keys]
+
+
 def get_keys(entries: list[EnvEntry]) -> list[str]:
     """Get a list of unique keys from entries, preserving first-seen order."""
     seen: set[str] = set()

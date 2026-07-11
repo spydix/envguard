@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from envguard.linter import EnvEntry
 from envguard.linter import compare_env_files
+from envguard.linter import filter_entries
 from envguard.linter import find_duplicates
 from envguard.linter import find_empties
 from envguard.linter import lint_file
+from envguard.linter import load_envignore
 from envguard.linter import parse_env_file
 
 import tempfile
@@ -190,3 +192,41 @@ def test_compare_preserves_order():
         result = compare_env_files(env, example)
         assert result.missing_in_env == ["D"]
         assert result.missing_in_example == ["A", "B"]
+
+
+def test_load_envignore():
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "DEV_PASSWORD\nLOCAL_TOKEN\n# comment\n\nSKIP_ME\n", ".envignore")
+        keys = load_envignore(f)
+        assert "DEV_PASSWORD" in keys
+        assert "LOCAL_TOKEN" in keys
+        assert "SKIP_ME" in keys
+        assert "# comment" not in keys
+        assert "" not in keys
+
+
+def test_load_envignore_not_found():
+    keys = load_envignore("nonexistent")
+    assert keys == set()
+
+
+def test_filter_entries():
+    entries = [
+        EnvEntry("KEEP", "val", 1, False),
+        EnvEntry("SKIP", "val", 2, False),
+        EnvEntry("ALSO_KEEP", "val", 3, False),
+    ]
+    filtered = filter_entries(entries, {"SKIP"})
+    assert len(filtered) == 2
+    assert all(e.key != "SKIP" for e in filtered)
+    assert filtered[0].key == "KEEP"
+    assert filtered[1].key == "ALSO_KEEP"
+
+
+def test_filter_entries_no_ignored():
+    entries = [
+        EnvEntry("A", "1", 1, False),
+        EnvEntry("B", "2", 2, False),
+    ]
+    filtered = filter_entries(entries, None)
+    assert len(filtered) == 2
