@@ -68,3 +68,40 @@ def test_fix_sort_and_deduplicate():
         assert len(lines) == 2
         assert lines[0] == "APPLE=4"
         assert lines[1] == "ZEBRA=3"
+
+
+def test_fix_preserves_inline_comment():
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "KEY=value # this is a comment\n")
+        fix_env_file(f, sort_keys=True, backup=False)
+        content = f.read_text()
+        assert "KEY=value" in content
+        assert "# this is a comment" in content
+
+
+def test_fix_preserves_comment_lines():
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "# top comment\nKEY=value\n# another comment\n")
+        fix_env_file(f, sort_keys=True, backup=False)
+        content = f.read_text()
+        assert "# top comment" in content
+        assert "# another comment" in content
+        assert "KEY=value" in content
+
+
+def test_fix_preserves_empty_value_with_inline_comment():
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "KEY= # commented empty\n")
+        fix_env_file(f, sort_keys=True, backup=False)
+        content = f.read_text()
+        assert "KEY=" in content
+        assert "# commented empty" in content
+
+
+def test_fix_strips_export_prefix():
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "export KEY=value\n")
+        fix_env_file(f, sort_keys=True, backup=False)
+        content = f.read_text()
+        assert "KEY=value" in content
+        assert "export" not in content

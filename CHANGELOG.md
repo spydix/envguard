@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-11-02
+
+### Fixed
+- `--fix` now preserves inline comments (e.g. `KEY=value # comment`) instead
+  of dropping them during sort/deduplicate.
+- `--fix` now preserves standalone comment lines (`# ...`) instead of
+  removing them from the file.
+- `--fix` now strips the `export ` prefix so that `export KEY=value` is
+  normalized to `KEY=value` in the fixed output.
+
+### Added
+- Tests for inline comment preservation, standalone comments, empty value
+  with inline comment, and export prefix stripping in the fixer.
+
 ## [1.3.0] - 2025-10-18
 
 ### Added
