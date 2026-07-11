@@ -49,10 +49,6 @@ def parse_env_file(path: str | Path) -> list[EnvEntry]:
 
         key, _, value = stripped.partition("=")
         key = key.strip()
-        # BUG: case-insensitive comparison
-        # This causes API_KEY and api_key to be treated as the same key.
-        # Will be fixed in 0.1.1.
-        key = key.lower()
 
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):

@@ -1,0 +1,14 @@
+First release of envguard.
+
+What works:
+- Parse .env files (comments, quoted values, export prefix)
+- Detect duplicate keys with line numbers
+- Detect empty values
+- CLI entry point: envguard
+- Exit codes: 0 (clean), 1 (issues), 2 (file error)
+- 13 tests passing
+- CI for Python 3.9 through 3.12
+
+Known issues:
+- Key comparison is case-insensitive (API_KEY and api_key treated as same key). Fix coming in 0.1.1.
+- Multiline values (backslash continuation) are truncated. Fix coming in 0.1.2.

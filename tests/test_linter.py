@@ -21,10 +21,20 @@ def test_parse_basic():
         f = _write(Path(d), "KEY=value\nOTHER=hello\n")
         entries = parse_env_file(f)
         assert len(entries) == 2
-        assert entries[0].key == "key"
+        assert entries[0].key == "KEY"
         assert entries[0].value == "value"
-        assert entries[1].key == "other"
+        assert entries[1].key == "OTHER"
         assert entries[1].value == "hello"
+
+
+def test_parse_case_sensitive():
+    """Keys with different casing should be treated as separate keys."""
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "API_KEY=secret\napi_key=other\n")
+        entries = parse_env_file(f)
+        assert len(entries) == 2
+        assert entries[0].key == "API_KEY"
+        assert entries[1].key == "api_key"
 
 
 def test_parse_comments_skipped():
@@ -32,7 +42,7 @@ def test_parse_comments_skipped():
         f = _write(Path(d), "# comment\nKEY=val\n\n# another\n")
         entries = parse_env_file(f)
         assert len(entries) == 1
-        assert entries[0].key == "key"
+        assert entries[0].key == "KEY"
 
 
 def test_parse_quotes_stripped():
@@ -48,7 +58,7 @@ def test_parse_export_prefix():
         f = _write(Path(d), "export KEY=value\n")
         entries = parse_env_file(f)
         assert len(entries) == 1
-        assert entries[0].key == "key"
+        assert entries[0].key == "KEY"
         assert entries[0].value == "value"
 
 
@@ -73,12 +83,12 @@ def test_find_duplicates():
 
 def test_find_empties():
     entries = [
-        EnvEntry("key", "", 1, True),
-        EnvEntry("other", "val", 2, False),
+        EnvEntry("KEY", "", 1, True),
+        EnvEntry("OTHER", "val", 2, False),
     ]
     empties = find_empties(entries)
     assert len(empties) == 1
-    assert empties[0].key == "key"
+    assert empties[0].key == "KEY"
 
 
 def test_lint_file_clean():
