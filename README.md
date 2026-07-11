@@ -72,6 +72,18 @@ Output:
 .env          MISSING_IN_EXAMPLE   'SECRET_KEY' is in .env but not in .env.example
 ```
 
+### Secret detection
+
+Scan for secrets like API keys, tokens, passwords, and private keys:
+
+```sh
+envguard .env --check-secrets
+```
+
+Detects AWS access keys, GitHub tokens, GitLab tokens, Slack tokens, JWT
+tokens, private key blocks, and flag suspicious key names like `password`,
+`secret`, `token`, and `api_key`.
+
 ### Strict mode
 
 In strict mode, empty values are treated as errors (exit code 1) instead of
@@ -81,12 +93,27 @@ warnings (exit code 0):
 envguard .env --strict
 ```
 
-### JSON output
+### Output formats
 
-For CI pipelines and programmatic use:
+Four output formats are available:
 
 ```sh
-envguard .env --format json
+envguard .env --format text      # default, colored
+envguard .env --format json      # machine-readable JSON
+envguard .env --format silent    # no output, exit code only
+envguard .env --format summary   # per-file breakdown with summary
+```
+
+Summary output example:
+
+```
+a.env: 2 error(s)
+  DUPLICATE_KEY  K:2  'K' already defined on line 1
+  SECRET  TOKEN:5  'TOKEN' looks like a GitHub Token
+b.env: 1 warning(s)
+  EMPTY_VALUE  E:3  'E' has an empty value
+
+3 error(s), 1 warning(s) in 2 file(s).
 ```
 
 ### Auto-fix: sort and deduplicate
@@ -97,7 +124,9 @@ envguard .env --fix
 
 This merges duplicate keys (keeping the last value) and sorts them
 alphabetically. The original file is backed up to `.env.bak` before any
-changes are made.
+changes are made. Skip the backup with `--no-backup`.
+
+Comment lines and inline comments are preserved during fix.
 
 ### Config file
 
@@ -106,10 +135,12 @@ Create `.envguard.toml` in your project root:
 ```toml
 [envguard]
 strict = true
-format = "text"
+format = "summary"
 check_secrets = true
-ignore_values = ["DEV_PASSWORD"]
 ```
+
+CLI flags override config file values. Use `--config PATH` to specify a
+custom config file location.
 
 ### .envignore
 
@@ -120,15 +151,24 @@ DEV_PASSWORD
 LOCAL_TOKEN
 ```
 
-## Exit codes
+Use `--envignore PATH` to specify a custom path.
 
-| Code | Meaning |
-|------|---------|
-| 0    | No issues found |
-| 1    | Issues found (errors in strict mode, or any problem) |
-| 2    | File not found or read error |
+### File groups
 
-## Pre-commit hook
+Define groups of `.env` files to lint and compare together in `.envguard.toml`:
+
+```toml
+[[envguard.file_groups]]
+name = "production"
+files = [".env", ".env.production"]
+example = ".env.example"
+```
+
+This allows cross-file comparison. If `.env.production` has a key that `.env`
+does not, envguard reports it. Useful for multi-environment setups where
+`.env`, `.env.local`, and `.env.production` should share a common set of keys.
+
+### Pre-commit hook
 
 Add to your `.pre-commit-config.yaml`:
 
@@ -139,6 +179,53 @@ repos:
     hooks:
       - id: envguard
         args: ['--strict']
+```
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0    | No issues found |
+| 1    | Issues found (errors, or any issue in strict mode) |
+| 2    | File not found or read error |
+
+## API
+
+envguard can be used as a library:
+
+```python
+from envguard.linter import lint_file, parse_env_file, compare_env_files
+from envguard.secrets import scan_for_secrets
+from envguard.reporter import build_report, format_summary
+from envguard.fixer import fix_env_file
+from envguard.config import load_config, merge_config
+from envguard.groups import FileGroup, lint_file_group
+
+# Parse entries
+entries = parse_env_file(".env")
+for entry in entries:
+    print(f"{entry.key} = {entry.value} (line {entry.line})")
+
+# Lint
+report = lint_file(".env")
+if report.duplicates:
+    print(f"Found {len(report.duplicates)} duplicate keys")
+
+# Compare
+result = compare_env_files(".env", ".env.example")
+print(f"Missing: {result.missing_in_env}")
+
+# Scan for secrets
+findings = scan_for_secrets(entries)
+for f in findings:
+    print(f"Secret: {f.key} matches {f.pattern_name}")
+
+# Build report and print summary
+result = build_report([report], findings, strict=False)
+print(format_summary(result))
+
+# Fix
+backup = fix_env_file(".env", sort_keys=True, backup=True)
 ```
 
 ## Why not just use shell scripts?

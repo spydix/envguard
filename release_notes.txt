@@ -1,9 +1,15 @@
-## What's Fixed
+## What's New
 
-- `--fix` now preserves inline comments (e.g. `KEY=value # comment`) instead of dropping them during sort/deduplicate.
-- `--fix` now preserves standalone comment lines (`# ...`) instead of removing them from the file.
-- `--fix` now strips the `export ` prefix so that `export KEY=value` is normalized to `KEY=value` in the fixed output.
+- **File groups**: Define groups of .env files in `.envguard.toml` to lint and compare together. Useful for multi-environment setups like `.env`, `.env.local`, `.env.production`.
+- **`--format summary`**: Shows a per-file breakdown of errors and warnings with a footer summary line.
+- **Refactored reporter**: New `ReportResult` dataclass with `error_count`, `warning_count`, `is_clean`, `group_by_file()`, `to_summary()`. New `build_report()` and `format_summary()` functions.
+- **Cross-file comparison**: When a file group has multiple files, envguard reports keys present in one file but missing in another.
+- New `groups` module with `FileGroup`, `load_file_groups()`, `lint_file_group()`.
+
+## Backward Compatibility
+
+The 1.x API (`build_issues()`, `print_report()`) is unchanged. New code should use `build_report()` and `format_summary()`.
 
 ## Tests
 
-74 tests passing.
+96 tests passing (22 new tests for groups and reporter).
