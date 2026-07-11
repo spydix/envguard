@@ -1,9 +1,20 @@
-Bugfix release.
-
-Fixed:
-- Key ordering in comparison output is now deterministic. Keys are returned in the order they appear in the file, not in random set order. Comparison results no longer jump around between runs.
+Feature release.
 
 Added:
-- Test for deterministic key ordering in comparison output.
+- Secret detection module with patterns for:
+  - AWS Access Keys (AKIA...)
+  - GitHub tokens (ghp_..., ghs_...)
+  - GitLab tokens (glpat-...)
+  - Slack tokens (xox...)
+  - JWT tokens
+  - Private key blocks (-----BEGIN...PRIVATE KEY-----)
+  - Generic API keys, passwords, secrets, tokens
+- --check-secrets CLI flag to enable secret scanning
+- Severity levels: high and medium
+- 8 tests for secret detection patterns
 
-Tests: 21 passing.
+Known issues:
+- Password pattern uses case-insensitive regex which matches the word "password" even in comments on the same line. False positives possible. Fix coming in 0.3.1.
+- Values containing # (inline comments) are truncated at the # symbol. Fix coming in 0.3.2.
+
+Tests: 29 passing.

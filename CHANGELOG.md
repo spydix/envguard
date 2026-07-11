@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-06-02
+
+### Fixed
+- Secret detection no longer produces false positives from comments.
+  Previously the "password" pattern used a regex that matched `password=`
+  anywhere in the raw line text, including comments. Now detection is split
+  into two separate checks:
+  - Value patterns: match the actual value against known formats (AWS keys,
+    GitHub tokens, JWT, private keys, etc.)
+  - Key name patterns: match the key name against secret-related names
+    (password, token, secret, api_key) and only flag if the value is
+    non-empty and not a placeholder.
+- Placeholder values (your-, xxx, changeme, placeholder, <, example) are
+  now skipped and not flagged as secrets.
+
+### Added
+- `detect_secret_by_key_name()` function for key-name based detection.
+- Tests for key-name detection, placeholder skipping, and empty value skipping.
+
 ## [0.3.0] - 2025-05-18
 
 ### Added
