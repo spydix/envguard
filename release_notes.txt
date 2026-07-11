@@ -1,20 +1,10 @@
-Feature release.
+Bugfix release.
+
+Fixed:
+- Inline comments in unquoted values are now properly stripped. Previously a # anywhere in the value would truncate it, even mid-word. Now only a # preceded by whitespace is treated as a comment marker for unquoted values. Quoted values preserve # as part of the value.
+- URLs with hash fragments (http://example.com/page#section) are no longer truncated.
 
 Added:
-- Secret detection module with patterns for:
-  - AWS Access Keys (AKIA...)
-  - GitHub tokens (ghp_..., ghs_...)
-  - GitLab tokens (glpat-...)
-  - Slack tokens (xox...)
-  - JWT tokens
-  - Private key blocks (-----BEGIN...PRIVATE KEY-----)
-  - Generic API keys, passwords, secrets, tokens
-- --check-secrets CLI flag to enable secret scanning
-- Severity levels: high and medium
-- 8 tests for secret detection patterns
+- Tests for inline comment stripping (unquoted, quoted, URLs, hash-without-space).
 
-Known issues:
-- Password pattern uses case-insensitive regex which matches the word "password" even in comments on the same line. False positives possible. Fix coming in 0.3.1.
-- Values containing # (inline comments) are truncated at the # symbol. Fix coming in 0.3.2.
-
-Tests: 29 passing.
+Tests: 39 passing.

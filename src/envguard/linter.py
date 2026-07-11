@@ -63,6 +63,17 @@ def parse_env_file(path: str | Path) -> list[EnvEntry]:
 
         value = value.strip()
 
+        # Handle inline comments: if the value is not quoted and contains
+        # a space followed by #, treat everything after the # as a comment.
+        # But only if the # is preceded by whitespace (not part of a URL
+        # like http://...#anchor).
+        if value and not (value[0] in ('"', "'")):
+            # Find a # that is preceded by whitespace
+            for j, ch in enumerate(value):
+                if ch == "#" and j > 0 and value[j - 1] == " ":
+                    value = value[:j].strip()
+                    break
+
         # Handle multiline values: if value ends with backslash, keep reading
         while value.endswith("\\"):
             value = value[:-1]

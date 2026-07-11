@@ -81,6 +81,43 @@ def test_parse_multiline():
         assert "PRIVATE KEY" in entries[0].value
 
 
+def test_parse_inline_comment_unquoted():
+    """Inline comments after unquoted values should be stripped."""
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "KEY=value # this is a comment\n")
+        entries = parse_env_file(f)
+        assert len(entries) == 1
+        assert entries[0].value == "value"
+
+
+def test_parse_inline_comment_quoted():
+    """Inline comments after quoted values should be stripped."""
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), 'KEY="value # not a comment"\n')
+        entries = parse_env_file(f)
+        assert len(entries) == 1
+        assert "value" in entries[0].value
+        assert "# not a comment" in entries[0].value
+
+
+def test_parse_no_inline_comment_in_url():
+    """Hash in a URL should not be treated as a comment."""
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "URL=http://example.com/page#section\n")
+        entries = parse_env_file(f)
+        assert len(entries) == 1
+        assert entries[0].value == "http://example.com/page#section"
+
+
+def test_parse_hash_without_space_not_comment():
+    """Hash without preceding space should not be treated as a comment."""
+    with tempfile.TemporaryDirectory() as d:
+        f = _write(Path(d), "KEY=val#ue\n")
+        entries = parse_env_file(f)
+        assert len(entries) == 1
+        assert entries[0].value == "val#ue"
+
+
 def test_find_duplicates():
     entries = [
         EnvEntry("key", "a", 1, False),
