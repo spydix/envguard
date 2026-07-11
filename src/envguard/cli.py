@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--format",
-        choices=["text", "json", "silent"],
+        choices=["text", "json", "silent", "summary"],
         default="text",
         help="Output format (default: text).",
     )
@@ -184,7 +184,38 @@ def main(argv: list[str] | None = None) -> int:
                 ))
 
     fmt = "silent" if args.quiet else fmt_val
-    print_report(all_issues, fmt=fmt, no_color=no_color)
+
+    if fmt == "summary":
+        from envguard.reporter import build_report, format_summary
+        result = build_report(reports, secrets_list, strict=strict)
+        if example_path:
+            if not Path(example_path).exists():
+                print(f"Error: example file not found: {example_path}", file=sys.stderr)
+                return 2
+            from envguard.reporter import Severity as Sev
+            for env_file in args.files:
+                result_cmp = compare_env_files(env_file, example_path)
+                for key in result_cmp.missing_in_env:
+                    result.issues.append(Issue(
+                        file=result_cmp.example_file,
+                        line=0,
+                        issue_type="MISSING_IN_ENV",
+                        message=f"'{key}' is in .env.example but not in {result_cmp.env_file}",
+                        key=key,
+                        severity=Sev.ERROR,
+                    ))
+                for key in result_cmp.missing_in_example:
+                    result.issues.append(Issue(
+                        file=result_cmp.env_file,
+                        line=0,
+                        issue_type="MISSING_IN_EXAMPLE",
+                        message=f"'{key}' is in {result_cmp.env_file} but not in .env.example",
+                        key=key,
+                        severity=Sev.WARNING,
+                    ))
+        print(format_summary(result, no_color=no_color))
+    else:
+        print_report(all_issues, fmt=fmt, no_color=no_color)
 
     if not all_issues:
         return 0

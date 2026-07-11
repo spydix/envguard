@@ -1,10 +1,9 @@
-## What's New
+## What's Fixed
 
-- **.envguard.toml config file**: Define default settings for strict, check_secrets, format, no_color, no_backup, envignore, and example in a TOML file. CLI flags override config file values.
-- **--config PATH flag**: Specify a custom config file location.
-- **New config module** with `load_config()` and `merge_config()` functions for programmatic use.
-- **pre-commit hook support**: Use envguard as a pre-commit hook via `.pre-commit-hooks.yaml`.
+- `--fix` now preserves inline comments (e.g. `KEY=value # comment`) instead of dropping them during sort/deduplicate.
+- `--fix` now preserves standalone comment lines (`# ...`) instead of removing them from the file.
+- `--fix` now strips the `export ` prefix so that `export KEY=value` is normalized to `KEY=value` in the fixed output.
 
 ## Tests
 
-70 tests passing.
+74 tests passing.

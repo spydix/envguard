@@ -38,6 +38,53 @@ class ReportResult:
     def has_warnings(self) -> bool:
         return any(i.severity == Severity.WARNING for i in self.issues)
 
+    @property
+    def error_count(self) -> int:
+        return sum(1 for i in self.issues if i.severity == Severity.ERROR)
+
+    @property
+    def warning_count(self) -> int:
+        return sum(1 for i in self.issues if i.severity == Severity.WARNING)
+
+    @property
+    def has_issues(self) -> bool:
+        return len(self.issues) > 0
+
+    @property
+    def is_clean(self) -> bool:
+        return len(self.issues) == 0
+
+    def group_by_file(self) -> dict[str, list[Issue]]:
+        """Group issues by file path."""
+        groups: dict[str, list[Issue]] = {}
+        for issue in self.issues:
+            groups.setdefault(issue.file, []).append(issue)
+        return groups
+
+    def to_summary(self) -> str:
+        """Return a one-line summary string."""
+        if self.is_clean:
+            return f"No issues found in {self.files_checked} file(s)."
+        parts: list[str] = []
+        if self.error_count:
+            parts.append(f"{self.error_count} error(s)")
+        if self.warning_count:
+            parts.append(f"{self.warning_count} warning(s)")
+        return f"{', '.join(parts)} in {self.files_checked} file(s)."
+
+
+def build_report(
+    reports: list[LintReport],
+    secrets: list[SecretFinding] | None = None,
+    strict: bool = False,
+) -> ReportResult:
+    """Build a ReportResult from lint reports and secret findings."""
+    issues = build_issues(reports, secrets, strict=strict)
+    return ReportResult(
+        issues=issues,
+        files_checked=len(reports),
+    )
+
 
 def build_issues(
     reports: list[LintReport],
@@ -119,6 +166,41 @@ def format_json(issues: list[Issue]) -> str:
 def format_silent(issues: list[Issue]) -> str:
     """No output, just return issues count."""
     return ""
+
+
+def format_summary(result: ReportResult, no_color: bool = False) -> str:
+    """Format a ReportResult as a summary with per-file breakdown."""
+    GREEN = "" if no_color else "\033[92m"
+    RED = "" if no_color else "\033[91m"
+    YELLOW = "" if no_color else "\033[93m"
+    RESET = "" if no_color else "\033[0m"
+    BOLD = "" if no_color else "\033[1m"
+
+    if result.is_clean:
+        return f"{GREEN}{BOLD}No issues found{RESET} in {result.files_checked} file(s)."
+
+    lines: list[str] = []
+
+    by_file = result.group_by_file()
+    for file_path in sorted(by_file):
+        file_issues = by_file[file_path]
+        errors = sum(1 for i in file_issues if i.severity == Severity.ERROR)
+        warnings = sum(1 for i in file_issues if i.severity == Severity.WARNING)
+        parts: list[str] = []
+        if errors:
+            parts.append(f"{RED}{errors} error(s){RESET}")
+        if warnings:
+            parts.append(f"{YELLOW}{warnings} warning(s){RESET}")
+        lines.append(f"{BOLD}{file_path}{RESET}: {', '.join(parts)}")
+        for issue in file_issues:
+            color = RED if issue.severity == Severity.ERROR else YELLOW
+            loc = f":{issue.line}" if issue.line else ""
+            lines.append(f"  {color}{issue.issue_type}{RESET}  {issue.key}{loc}  {issue.message}")
+
+    lines.append("")
+    lines.append(result.to_summary())
+
+    return "\n".join(lines)
 
 
 def print_report(

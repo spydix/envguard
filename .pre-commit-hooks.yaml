@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/spydix/envguard
-    rev: v1.3.0
+    rev: v2.0.0
     hooks:
       - id: envguard
         name: envguard

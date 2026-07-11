@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-12-15
+
+### Added
+- **File groups**: Define groups of .env files in `.envguard.toml` to lint
+  and compare together. Useful for multi-environment setups like
+  `.env`, `.env.local`, `.env.production`.
+  ```toml
+  [[envguard.file_groups]]
+  name = "production"
+  files = [".env", ".env.production"]
+  example = ".env.example"
+  ```
+- New `groups` module with `FileGroup`, `load_file_groups()`, and
+  `lint_file_group()` functions.
+- `--format summary` option: shows a per-file breakdown of errors and
+  warnings with a footer summary line.
+- `ReportResult` dataclass with `error_count`, `warning_count`,
+  `is_clean`, `has_issues`, `group_by_file()`, `to_summary()`.
+- `build_report()` function that returns a `ReportResult` object.
+- `format_summary()` function for structured summary output.
+- Cross-file comparison: when a file group has multiple files, envguard
+  reports keys that are present in one file but missing in another.
+
+### Changed
+- Refactored reporter module to support `ReportResult` with richer
+  metadata while keeping backward compatibility with `build_issues()`
+  and `print_report()`.
+- `--format` now accepts `summary` as a fourth option.
+- Bumped version to 2.0.0. The public API from 1.x is still supported.
+  The `build_issues()` and `print_report()` functions remain unchanged.
+  New code should use `build_report()` and `format_summary()` instead.
+
+### Tests
+- 96 tests passing (22 new tests for groups and reporter).
+
 ## [1.3.1] - 2025-11-02
 
 ### Fixed
