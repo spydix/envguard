@@ -1,0 +1,11 @@
+repos:
+  - repo: https://github.com/spydix/envguard
+    rev: v1.3.0
+    hooks:
+      - id: envguard
+        name: envguard
+        description: Lint and validate .env files
+        entry: envguard
+        language: python
+        files: \.env$
+        pass_filenames: true

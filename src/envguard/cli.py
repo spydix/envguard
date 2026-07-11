@@ -67,6 +67,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Skip creating a .bak backup when using --fix.",
     )
+    parser.add_argument(
+        "--config",
+        metavar="PATH",
+        help="Path to .envguard.toml config file. Defaults to ./.envguard.toml.",
+    )
     args = parser.parse_args(argv)
 
     if not args.files:
@@ -82,13 +87,35 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: example file not found: {args.example}", file=sys.stderr)
         return 2
 
+    from envguard.config import load_config, merge_config
     from envguard.reporter import Issue
     from envguard.linter import load_envignore
     from envguard.linter import filter_entries
 
+    config = load_config(args.config)
+
+    cli_args_dict = {
+        "strict": args.strict,
+        "check_secrets": args.check_secrets,
+        "format": args.format,
+        "no_color": args.no_color,
+        "no_backup": args.no_backup,
+        "envignore": args.envignore,
+        "example": args.example,
+    }
+    merged = merge_config(cli_args_dict, config)
+
+    strict = merged["strict"]
+    check_secrets = merged["check_secrets"]
+    fmt_val = merged["format"]
+    no_color = merged["no_color"]
+    no_backup = merged["no_backup"]
+    envignore_path = merged["envignore"]
+    example_path = merged["example"]
+
     ignored_keys: set[str] = set()
-    if args.envignore:
-        ignored_keys = load_envignore(args.envignore)
+    if envignore_path:
+        ignored_keys = load_envignore(envignore_path)
 
     if args.fix:
         from envguard.fixer import fix_env_file
@@ -97,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
                 f,
                 sort_keys=True,
                 deduplicate=True,
-                backup=not args.no_backup,
+                backup=not no_backup,
             )
             if backup:
                 print(f"Fixed {f}. Backup saved to {backup}")
@@ -121,19 +148,22 @@ def main(argv: list[str] | None = None) -> int:
     all_issues: list[Issue] = []
 
     secrets_list = None
-    if args.check_secrets:
+    if check_secrets:
         from envguard.secrets import scan_for_secrets
         all_entries = []
         for r in reports:
             all_entries.extend(r.entries)
         secrets_list = scan_for_secrets(all_entries)
 
-    all_issues = build_issues(reports, secrets_list, strict=args.strict)
+    all_issues = build_issues(reports, secrets_list, strict=strict)
 
-    if args.example:
+    if example_path:
+        if not Path(example_path).exists():
+            print(f"Error: example file not found: {example_path}", file=sys.stderr)
+            return 2
         from envguard.reporter import Severity as Sev
         for env_file in args.files:
-            result = compare_env_files(env_file, args.example)
+            result = compare_env_files(env_file, example_path)
             for key in result.missing_in_env:
                 all_issues.append(Issue(
                     file=result.example_file,
@@ -148,26 +178,23 @@ def main(argv: list[str] | None = None) -> int:
                     file=result.env_file,
                     line=0,
                     issue_type="MISSING_IN_EXAMPLE",
-                    message=f"'{key}' is in {result.env_file} but not in {result.example_file}",
+                    message=f"'{key}' is in {result.env_file} but not in .env.example",
                     key=key,
                     severity=Sev.WARNING,
                 ))
 
-    fmt = "silent" if args.quiet else args.format
-    print_report(all_issues, fmt=fmt, no_color=args.no_color)
+    fmt = "silent" if args.quiet else fmt_val
+    print_report(all_issues, fmt=fmt, no_color=no_color)
 
     if not all_issues:
         return 0
 
     has_errors = any(i.severity == Severity.ERROR for i in all_issues)
-    has_warnings = any(i.severity == Severity.WARNING for i in all_issues)
 
-    if args.strict:
+    if strict:
         return 1
     if has_errors:
         return 1
-    if has_warnings:
-        return 0
 
     return 0
 
